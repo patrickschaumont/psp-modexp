@@ -1,0 +1,450 @@
+/* library for ARM-ISA logic instructions :                */
+/* AND2 : operand1 AND operand2                            */
+/* OR2 : operand1 OR operand2                              */
+/* ORN2 : operand1 OR !operand2                            */
+/* XOR2 : operand1 XOR operand2                            */
+/* BIC2 : operand1 AND NOT operand2 (Bit clear)            */
+/* NOT1 : NOT operand1                                     */
+/* BUF1 : operand1                                         */
+/* BIF : (result & operand2) | (operand1 & !operand2)      */
+/* BIT : (operand1 & operand2) | (result & !operand2)      */
+/* BSL : (result & operand1) | (operand2 & !result)        */
+/* DFF                                                     */
+/* DFFSR                                                   */
+
+
+library (cmos_cells) { /* library group till end*/ 
+  technology (cmos) ; /* complex attribute */ 
+  delay_model : table_lookup ; 
+  default_fanout_load : 1;
+  default_inout_pin_cap : 1;
+  default_input_pin_cap : 1;
+  default_output_pin_cap : 1;
+  capacitive_load_unit(0.042000,pf) ;
+  voltage_unit  : "1V";
+  current_unit  : "1mA";
+  pulling_resistance_unit : "1kohm";
+  time_unit : "1ns";
+  leakage_power_unit : "1nW";
+  slew_lower_threshold_pct_rise : 30.0;
+  slew_upper_threshold_pct_rise : 70.0;
+  slew_lower_threshold_pct_fall : 30.0;
+  slew_upper_threshold_pct_fall : 70.0;
+  input_threshold_pct_rise : 50.0;
+  input_threshold_pct_fall : 50.0;
+  output_threshold_pct_rise : 50.0;
+  output_threshold_pct_fall : 80.0;
+
+  lu_table_template(fall_template) {
+    variable_1 : input_net_transition;
+    index_1 ("0.1, 1.2, 2.3, 3.4");
+  }
+
+  /*D Flip-Flop */
+  cell (DFF) {
+    area : 1;
+    pin (D) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    pin (CP) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    ff (IQ,IQN) {
+      clocked_on : "CP" ;
+      next_state : "D" ;
+    }
+    pin (Q) {
+      function : "IQ";
+      direction : output;
+      timing() {
+        fall_propagation (fall_template) { 
+          values ("0.02, 0.15, 0, 0") ; 
+        } 
+        rise_propagation (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        rise_transition (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        fall_transition (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        timing_type : rising_edge;
+        intrinsic_rise : 1;
+        intrinsic_fall : 1;
+        related_pin : "CP";
+      }
+    }
+  }
+  /* DFF with set and reset */
+  cell(DFFSR) {
+    area: 18;
+    ff("IQ", "IQN") { clocked_on: C;
+                  next_state: D;
+                      preset: S;
+                       clear: R; }
+    pin(C) { direction: input;
+                 clock: true; }
+    pin(D) { direction: input; }
+    pin(Q) { direction: output;
+              function: "IQ"; }
+    pin(S) { direction: input; }
+    pin(R) { direction: input; }
+  }
+
+
+  /*2-input AND gate*/ 
+  cell (AND2) { /* cell group */ 
+    area : 1;
+    pin (A) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (B) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (Z) { /* pin group */ 
+      direction : output ; 
+      function : "A * B" ; 
+      timing () { /* timing group */ 
+        cell_rise(scalar) { 
+          values ( "0.1"); 
+        } 
+        rise_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        cell_fall(scalar) { 
+          values ( "0.1"); 
+        } 
+        fall_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        related_pin : "A B" ; 
+      } /* End timing group */ 
+    } /* End pin group */ 
+  } /* End cell group */ 
+
+  /*2-input OR gate*/ 
+  cell (OR2) { 
+    area : 1;
+    pin (A) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (B) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (Z) { 
+      direction : output ; 
+      function : "A + B" ; 
+      timing () { 
+        cell_rise(scalar) { 
+          values ( "0.1"); 
+        } 
+        rise_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        cell_fall(scalar) { 
+          values ( "0.1"); 
+        } 
+        fall_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        related_pin : "A B" ; 
+      } 
+    } 
+  } 
+
+  /*2-input XOR gate*/ 
+  cell (XOR2) { 
+    area : 1;
+    pin (A) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (B) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (Z) { 
+      direction : output ; 
+      function : "A ^ B" ; 
+      timing () { 
+        cell_rise(scalar) { 
+          values ( "0.1"); 
+        } 
+        rise_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        cell_fall(scalar) { 
+          values ( "0.1"); 
+        } 
+        fall_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        related_pin : "A B" ; 
+      } 
+    } 
+  } 
+
+  /*2-input BIC gate*/ 
+  cell (BIC2) { 
+    area : 1;
+    pin (A) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (B) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (Z) { 
+      direction : output ; 
+      function : "A * (!B)" ; 
+      timing () { 
+        cell_rise(scalar) { 
+          values ( "0.1"); 
+        } 
+        rise_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        cell_fall(scalar) { 
+          values ( "0.1"); 
+        } 
+        fall_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        related_pin : "A B" ; 
+      } 
+    } 
+  } 
+
+  /*2-input ORN gate*/ 
+  cell (ORN2) { 
+    area : 1;
+    pin (A) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (B) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (Z) { 
+      direction : output ; 
+      function : "A + (!B)" ; 
+      timing () { 
+        cell_rise(scalar) { 
+          values ( "0.1"); 
+        } 
+        rise_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        cell_fall(scalar) { 
+          values ( "0.1"); 
+        } 
+        fall_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        related_pin : "A B" ; 
+      } 
+    } 
+  } 
+
+  /*1-input NOT gate*/ 
+  cell (NOT1) { 
+    area : 1;
+    pin (A) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (Z) { 
+      direction : output ; 
+      function : "!A" ; 
+      timing () { 
+        cell_rise(scalar) { 
+          values ( "0.1"); 
+        } 
+        rise_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        cell_fall(scalar) { 
+          values ( "0.1"); 
+        } 
+        fall_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        related_pin : "A" ; 
+      } 
+    } 
+  } 
+
+  /*1-input BUF gate*/ 
+  cell (BUF1) { 
+    area : 1;
+    pin (A) { 
+      direction : input ; 
+      capacitance : 1 ; 
+    } 
+    pin (Z) { 
+      direction : output ; 
+      function : "A" ; 
+      timing () { 
+        cell_rise(scalar) { 
+          values ( "0.1"); 
+        } 
+        rise_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        cell_fall(scalar) { 
+          values ( "0.1"); 
+        } 
+        fall_transition(scalar) { 
+          values ( "0.1"); 
+        } 
+        related_pin : "A" ; 
+      } 
+    } 
+  } 
+
+
+
+      /*2-input BIF gate*/ 
+      /*
+  cell (BIF) {
+    area : 1;
+    pin (A) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    pin (B) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    pin (CP) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    ff (IQ,IQN) {
+      clocked_on : "CP" ;
+      next_state : "(IQ*B)+(A*(!B))" ;
+    }
+    pin (Q) {
+      function : "IQ";
+      direction : output;
+      timing() {
+        fall_propagation (fall_template) { 
+          values ("0.02, 0.15, 0, 0") ; 
+        } 
+        rise_propagation (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        rise_transition (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        fall_transition (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        timing_type : rising_edge;
+        intrinsic_rise : 1;
+        intrinsic_fall : 1;
+        related_pin : "CP";
+      }
+    }
+  }
+      */
+      /*2-input BIT gate*/ 
+      /*
+  cell (BIT) {
+    area : 1;
+    pin (A) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    pin (B) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    pin (CP) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    ff (IQ,IQN) {
+      clocked_on : "CP" ;
+      next_state : "(A*B)+(IQ*(!B))" ;
+    }
+    pin (Q) {
+      function : "IQ";
+      direction : output;
+      timing() {
+        fall_propagation (fall_template) { 
+          values ("0.02, 0.15, 0, 0") ; 
+        } 
+        rise_propagation (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        rise_transition (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        fall_transition (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        timing_type : rising_edge;
+        intrinsic_rise : 1;
+        intrinsic_fall : 1;
+        related_pin : "CP";
+      }
+    }
+  }
+      */
+
+      /*2-input BSL gate*/ 
+      /*
+  cell (BSL) {
+    area : 1;
+    pin (A) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    pin (B) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    pin (CP) {
+      direction : input ;
+      capacitance : 1 ; 
+    }
+    ff (IQ,IQN) {
+      clocked_on : "CP" ;
+      next_state : "(IQ*A)+(B*(!IQ))" ;
+    }
+    pin (Q) {
+      function : "IQ";
+      direction : output;
+      timing() {
+        fall_propagation (fall_template) { 
+          values ("0.02, 0.15, 0, 0") ; 
+        } 
+        rise_propagation (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        rise_transition (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        fall_transition (fall_template) { 
+          values ("0.04, 0.20, 0, 0") ; 
+        } 
+        timing_type : rising_edge;
+        intrinsic_rise : 1;
+        intrinsic_fall : 1;
+        related_pin : "CP";
+      }
+    }
+  }
+      */
+} /* End library group */ 
+
